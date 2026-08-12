@@ -1,0 +1,41 @@
+name: Monitor orzeczeń — środki unijne
+
+on:
+  schedule:
+    - cron: "30 5 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Tryb uruchomienia"
+        type: choice
+        default: standard
+        options: [standard, backfill]
+
+jobs:
+  run-monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monitor
+        env:
+          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          GDRIVE_FILE_ID: ${{ secrets.GDRIVE_FILE_ID }}
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "backfill" ]; then
+            python src/monitor.py --backfill
+          else
+            python src/monitor.py
+          fi
