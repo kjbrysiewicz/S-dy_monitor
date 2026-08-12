@@ -1,0 +1,143 @@
+# ============================================================
+# Konfiguracja monitora orzeczeń — dopisywanie do mastera
+# "Baza_orzecznictwa_po_stronie_beneficjenta___MASTER"
+# ============================================================
+
+# Grupy fraz. Każda grupa niesie metadane wpisywane do nowych rekordów:
+#   finansowanie -> kolumna "Rodzaj finansowania" (wartość ze słownika mastera)
+#   problem      -> kolumna "Problemy prawne" (opcjonalnie; słownik mastera)
+#   court_types  -> typy sądów w SAOS dla tej grupy
+#                   (ADMINISTRATIVE = NSA/WSA, COMMON = powszechne, SUPREME = SN)
+keyword_groups:
+
+  - finansowanie: "Fundusze UE / polityka spójności"
+    court_types: [ADMINISTRATIVE]
+    keywords:
+      - phrase: "art. 207 ustawy o finansach publicznych"
+      - phrase: "zwrot środków europejskich"
+      - phrase: "korekta finansowa"
+        problem: "proporcjonalność i taryfikator"
+      - phrase: "nieprawidłowość indywidualna"
+        problem: "nieprawidłowość i szkoda"
+      - phrase: "kwalifikowalność wydatków"
+        problem: "kwalifikowalność wydatków"
+      - phrase: "trwałość projektu"
+        problem: "trwałość projektu"
+      - phrase: "rozporządzenie 2021/1060"
+      - phrase: "ustawa wdrożeniowa"
+      - phrase: "wskaźniki rezultatu projektu"
+        problem: "cele i wskaźniki projektu"
+
+  - finansowanie: "KPO"
+    court_types: [ADMINISTRATIVE]
+    keywords:
+      - phrase: "Krajowy Plan Odbudowy"
+      - phrase: "plan rozwojowy odmowa"
+
+  - finansowanie: "Czyste Powietrze"
+    court_types: [ADMINISTRATIVE]
+    keywords:
+      - phrase: "program Czyste Powietrze"
+
+  - finansowanie: "PFR / Tarcza Finansowa"
+    court_types: [COMMON, SUPREME]
+    keywords:
+      - phrase: "subwencja finansowa PFR"
+        problem: "droga cywilna i weksel"
+      - phrase: "Tarcza Finansowa zwrot subwencji"
+        problem: "droga cywilna i weksel"
+
+  # Sprawy cywilne dot. środków unijnych (sądy powszechne + SN):
+  # spory z umów o dofinansowanie, powództwa o zwrot, zabezpieczenia, weksle
+  - finansowanie: "Fundusze UE / polityka spójności"
+    court_types: [COMMON, SUPREME]
+    keywords:
+      - phrase: "umowa o dofinansowanie projektu"
+      - phrase: "zwrot dofinansowania powództwo"
+      - phrase: "rozwiązanie umowy o dofinansowanie"
+      - phrase: "weksel umowa o dofinansowanie"
+        problem: "droga cywilna i weksel"
+      - phrase: "ustalenie istnienia stosunku prawnego dofinansowanie"
+        problem: "odszkodowanie / dochodzenie dofinansowania"
+      - phrase: "zabezpieczenie roszczenia dofinansowanie"
+      - phrase: "kara umowna dofinansowanie"
+      - phrase: "bezpodstawne wzbogacenie dofinansowanie"
+
+  - finansowanie: "Pomoc publiczna"
+    court_types: [ADMINISTRATIVE]
+    keywords:
+      - phrase: "odzyskanie pomocy publicznej"
+        problem: "pomoc publiczna"
+
+# Okno czasowe: ile dni wstecz sięgać przy każdym uruchomieniu.
+# Deduplikacja po sygnaturze/kluczu sprawy chroni przed duplikatami,
+# więc okno może być szerokie (łapie orzeczenia indeksowane z opóźnieniem).
+lookback_days: 90
+
+# Maksymalna liczba wyników na jedną frazę (limit strony SAOS: 100).
+max_results_per_keyword: 100
+
+# Długość fragmentu treści zapisywanego w "Notatce wewnętrznej" (znaki).
+excerpt_length: 300
+
+# Analiza pełnych tekstów także w trybie standardowym (dziennym)?
+# Klasyfikacja słownikowa: Problemy prawne + Etap sporu (wartości ze słowników
+# mastera); wynik dla beneficjenta i teza pozostają zawsze do ręcznej oceny.
+analyze_in_standard_mode: true
+
+# --- Backfill (jednorazowe zaciągnięcie historii): python src/monitor.py --backfill ---
+backfill:
+  since: "2023-01-01"
+  max_results_per_keyword: 1000   # pełna paginacja SAOS (100/stronę)
+  fetch_full_text: true           # pobierz pełne teksty i klasyfikuj
+
+# --- Źródła ---
+
+saos:
+  enabled: true
+
+# CBOSA (orzeczenia.nsa.gov.pl) — scraper, WŁĄCZONY jako źródło filtrowane
+# po kategorii sprawy. Brak API; zmiana struktury HTML unieruchamia moduł
+# (skrypt wtedy loguje błąd i kontynuuje z samym SAOS).
+cbosa:
+  enabled: true
+  delay_seconds: 3
+  # Symbole spraw CBOSA — środki unijne mają symbol 6559
+  symbols: ["6559"]
+  # Główny tryb: pobierz WSZYSTKIE sprawy z powyższymi symbolami (filtr kategorii)
+  search_by_symbol: true
+  # Dodatkowo wyszukiwanie po frazach zawężone do symbolu (zwykle zbędne)
+  search_by_keywords: false
+
+# Portal Orzeczeń Sądów Powszechnych (orzeczenia.ms.gov.pl) — scraper
+# eksperymentalny; przeszukiwany frazami z grup o court_types COMMON/SUPREME.
+ms_portal:
+  enabled: true
+  delay_seconds: 3
+
+# Baza orzeczeń Sądu Najwyższego (www.sn.pl) — scraper eksperymentalny;
+# uzupełnienie SAOS (courtType=SUPREME), nie jedyny kanał dla SN.
+sn_portal:
+  enabled: true
+  delay_seconds: 3
+
+# Filtr wstępny kandydatów z SAOS po kategorii sprawy: dla każdego orzeczenia
+# sądowoadministracyjnego symbol jest weryfikowany po sygnaturze w CBOSA;
+# sprawy spoza kategorii są odrzucane. Sprawy cywilne (PFR) nie mają symboli
+# CBOSA i przechodzą bez filtra.
+symbol_filter:
+  enabled: true
+  symbols: ["6559"]
+  keep_unverified: true    # symbol nieustalony (np. błąd sieci) -> zachowaj z adnotacją
+  delay_seconds: 1.5
+
+# --- Master (plik na Google Drive) ---
+
+master:
+  sheet_name: "Baza orzeczeń"
+  # Wartości domyślne nowych rekordów (muszą pochodzić ze słowników mastera):
+  defaults:
+    status_publikacji: "Do weryfikacji"
+    status_weryfikacji: "Metadane wstępne"
+    wynik: "Do oceny"
+    etap_sporu: "Inne / do klasyfikacji"
