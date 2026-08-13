@@ -2,6 +2,7 @@ name: Monitor orzeczeń — środki unijne
 
 on:
   schedule:
+    # 05:30 UTC = 07:30 czasu warszawskiego (lato) / 06:30 (zima), pn–pt
     - cron: "30 5 * * 1-5"
   workflow_dispatch:
     inputs:
@@ -10,11 +11,15 @@ on:
         type: choice
         default: standard
         options: [standard, backfill]
+      agent_max:
+        description: "Limit ocen agenta AI (puste = wg config.yaml)"
+        required: false
+        default: ""
 
 jobs:
   run-monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 120   # backfill z analizą treści może potrwać
 
     steps:
       - name: Checkout
@@ -38,4 +43,16 @@ jobs:
             python src/monitor.py --backfill
           else
             python src/monitor.py
+          fi
+
+      - name: Run content agent
+        env:
+          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          GDRIVE_FILE_ID: ${{ secrets.GDRIVE_FILE_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "${{ github.event.inputs.agent_max }}" ]; then
+            python src/agent.py --max "${{ github.event.inputs.agent_max }}"
+          else
+            python src/agent.py
           fi
