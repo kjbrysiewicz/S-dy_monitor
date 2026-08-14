@@ -56,3 +56,17 @@ jobs:
           else
             python src/agent.py
           fi
+
+      - name: Send email report
+        if: ${{ hashFiles('agent_report.txt') != '' }}
+        continue-on-error: true
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          from: Monitoring orzeczeń <${{ secrets.MAIL_USERNAME }}>
+          to: ${{ secrets.MAIL_TO }}
+          subject: "Nowe rekomendacje orzeczeń — ${{ github.run_id }}"
+          body: file://agent_report.txt
