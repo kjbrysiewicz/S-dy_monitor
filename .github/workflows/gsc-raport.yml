@@ -28,7 +28,7 @@ jobs:
 
       - name: Raport GSC -> Google Sheet
         env:
-          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
           SHEET_ID: ${{ secrets.GSC_SHEET_ID }}
           GSC_SITE_URL: "sc-domain:kbrysiewicz.pl"
           GSC_LAG_DAYS: "3"
