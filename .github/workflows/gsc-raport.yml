@@ -30,6 +30,6 @@ jobs:
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
           SHEET_ID: ${{ secrets.GSC_SHEET_ID }}
-          GSC_SITE_URL: "sc-domain:kbrysiewicz.pl"
+          GSC_SITE_URL: "https://kbrysiewicz.pl/"
           GSC_LAG_DAYS: "3"
         run: python gsc_raport.py
