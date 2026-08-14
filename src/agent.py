@@ -75,6 +75,13 @@ istotności: (a) znaczenie praktyczne dla beneficjentów funduszy UE/KPO/PFR, \
 doktrynalny wart glosy, (d) potencjał newsowy/dyskusyjny. Wyrok rutynowy, \
 powielający utrwaloną linię, ma niską istotność nawet gdy dotyczy funduszy.
 
+ODRĘBNIE oceniasz, czy orzeczenie w ogóle dotyczy tematyki bazy (środki unijne, \
+KPO, pomoc publiczna, subwencje PFR/Tarcza, Czyste Powietrze). To inna oś niż \
+istotność contentowa: rutynowy wyrok o korekcie finansowej JEST związany z \
+tematyką (zwiazane_z_tematyka=true, niska istotność). Niezwiązane są sprawy, \
+które trafiły do bazy przypadkiem — np. spór podatkowy, w którym fraza padła \
+marginalnie. W razie wątpliwości zaznaczaj zwiazane_z_tematyka=true.
+
 Dobór kanału: LinkedIn = szybki news/komentarz (świeże, głośne, proste do \
 streszczenia); Blog = praktyczny problem beneficjenta, z którego da się zrobić \
 poradnikowy tekst; "Artykuł naukowy / glosa" = nowość doktrynalna, rozbieżność, \
@@ -88,6 +95,8 @@ USER_PROMPT_TEMPLATE = """Tematy szczególnie obserwowane przez kancelarię (pod
 
 Oceń poniższe orzeczenie i zwróć JSON o polach:
 {{
+  "zwiazane_z_tematyka": true | false,   // czy orzeczenie W OGÓLE dotyczy środków unijnych, KPO, pomocy publicznej lub subwencji PFR (nawet rutynowo)
+  "pewnosc_zwiazku": <int 0-100>,        // jak pewna jest ta ocena
   "istotnosc": <int 0-100>,
   "dla_beneficjenta": "korzystne" | "niekorzystne" | "mieszane" | "nie dotyczy",
   "kanal_glowny": "LinkedIn" | "Blog" | "Artykuł naukowy / glosa" | "Podcast" | "Pomiń",
@@ -196,6 +205,81 @@ def ensure_rekom_sheet(wb):
     return ws
 
 
+REPORT_PATH = ROOT / "agent_report.txt"
+REJECTED_SHEET = "Odrzucone (auto)"
+
+
+def ensure_rejected_sheet(wb, base):
+    """Arkusz-kwarantanna: pełne wiersze usunięte z Bazy orzeczeń + metadane."""
+    if REJECTED_SHEET in wb.sheetnames:
+        return wb[REJECTED_SHEET]
+    ws = wb.create_sheet(REJECTED_SHEET)
+    header_font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+    header_fill = PatternFill("solid", fgColor="7A1F1F")
+    headers = [c.value for c in base[1]] + ["Data usunięcia", "Powód (AI)"]
+    for i, name in enumerate(headers, start=1):
+        c = ws.cell(row=1, column=i, value=name)
+        c.font = header_font
+        c.fill = header_fill
+    ws.freeze_panes = "A2"
+    return ws
+
+
+def remove_offtopic(wb, base, header, to_remove: dict[str, str]) -> int:
+    """Przenosi wskazane rekordy (ID -> powód) do arkusza kwarantanny
+    i usuwa je z Bazy orzeczeń. Zwraca liczbę usuniętych."""
+    if not to_remove:
+        return 0
+    rejected = ensure_rejected_sheet(wb, base)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    font = Font(name="Arial", size=10)
+    rows = []
+    for r in range(2, base.max_row + 1):
+        rid = str(base.cell(r, header["ID"]).value or "").strip()
+        if rid in to_remove:
+            rows.append((r, rid))
+    for r, rid in sorted(rows, reverse=True):  # od dołu, żeby indeksy nie uciekały
+        values = [base.cell(r, c).value for c in range(1, len(header) + 1)]
+        rr = rejected.max_row + 1
+        for c, v in enumerate(values + [now, to_remove[rid]], start=1):
+            cell = rejected.cell(row=rr, column=c, value=v)
+            cell.font = copy.copy(font)
+        base.delete_rows(r)
+        log.info("Usunięto z bazy (poza tematyką): %s (%s)", rid, values[1])
+    return len(rows)
+
+
+def write_email_report(recommended, details, evaluated: int, queued: int) -> None:
+    """Zapisuje raport tekstowy do wysyłki e-mailem (tylko gdy są rekomendacje)."""
+    if not recommended:
+        log.info("Brak rekomendacji — e-mail nie zostanie wysłany.")
+        return
+    lines = [
+        f"Monitoring orzeczeń — raport z {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+        f"Oceniono: {evaluated} orzeczeń, rekomendacji: {len(recommended)}."
+        + (f" W kolejce do oceny pozostało: {queued}." if queued > 0 else ""),
+        "",
+        "REKOMENDACJE (wg istotności):",
+        "",
+    ]
+    for score, syg, kanal, tytul in recommended:
+        d = details.get(syg, {})
+        lines.append(f"[{score}/100] {syg} — {d.get('sad', '')}, {d.get('data', '')}")
+        lines.append(f"  Kanał: {kanal}"
+                     + (f" (dodatkowo: {d['dodatkowe']})" if d.get("dodatkowe") else "")
+                     + (f" | wstępnie: {d['wynik']}" if d.get("wynik") else ""))
+        if tytul:
+            lines.append(f"  Tytuł roboczy: {tytul}")
+        if d.get("hook"):
+            lines.append(f"  Hook: {d['hook']}")
+        if d.get("link"):
+            lines.append(f"  {d['link']}")
+        lines.append("")
+    lines.append("Pełne szczegóły (punkty, uzasadnienia): arkusz 'Rekomendacje' w pliku MASTER na Dysku Google.")
+    REPORT_PATH.write_text("\n".join(lines), encoding="utf-8")
+    log.info("Raport e-mail zapisany: %s", REPORT_PATH)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--max", type=int, default=None,
@@ -217,6 +301,8 @@ def main() -> int:
     min_score = int(acfg.get("min_score_for_recommendation", 55))
     max_chars = int(acfg.get("max_chars", 25000))
     watchlist = acfg.get("watchlist", [])
+    auto_remove = bool(acfg.get("auto_remove_offtopic", True))
+    remove_confidence = int(acfg.get("remove_min_confidence", 80))
 
     drive_sync.download_xlsx(str(LOCAL_XLSX))
     wb = load_workbook(LOCAL_XLSX)
@@ -263,6 +349,8 @@ def main() -> int:
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     written = 0
     recommended = []
+    details: dict[str, dict] = {}
+    to_remove: dict[str, str] = {}
 
     for item in batch:
         tekst = get_ruling_text(item["link"], item["notatka"], max_chars)
@@ -273,6 +361,10 @@ def main() -> int:
         kanal = str(res.get("kanal_glowny", "Pomiń"))
         score = int(res.get("istotnosc", 0) or 0)
         if score < min_score:
+            kanal = "Pomiń"
+        offtopic = (res.get("zwiazane_z_tematyka") is False
+                    and int(res.get("pewnosc_zwiazku", 0) or 0) >= remove_confidence)
+        if offtopic:
             kanal = "Pomiń"
         row = [
             now, item["id"], item["sygnatura"], item["sad"], item["data"],
@@ -291,11 +383,28 @@ def main() -> int:
                 cell.alignment = wrap
             if c == 14 and value:
                 cell.hyperlink = value
+        if offtopic and auto_remove:
+            rekom.cell(row=r, column=15, value="Usunięta z bazy")
+            to_remove[item["id"]] = (
+                f"AI: poza tematyką (pewność {res.get('pewnosc_zwiazku', '?')}%). "
+                + str(res.get("uzasadnienie", ""))
+            )
         written += 1
         if kanal != "Pomiń":
             recommended.append((score, item["sygnatura"], kanal,
                                 str(res.get("tytul_roboczy", ""))))
+            details[item["sygnatura"]] = {
+                "sad": item["sad"], "data": item["data"], "link": item["link"],
+                "hook": str(res.get("hook", "")),
+                "dodatkowe": ", ".join(res.get("kanaly_dodatkowe", []) or []),
+                "wynik": str(res.get("dla_beneficjenta", "")),
+            }
         log.info("%s: %d/100 -> %s", item["sygnatura"], score, kanal)
+
+    removed = remove_offtopic(wb, base, header, to_remove) if auto_remove else 0
+    if removed:
+        log.info("Usunięto z Bazy orzeczeń %d rekordów spoza tematyki "
+                 "(kopie w arkuszu '%s').", removed, REJECTED_SHEET)
 
     rekom.auto_filter.ref = f"A1:{get_column_letter(len(REKOM_COLUMNS))}{rekom.max_row}"
     wb.save(LOCAL_XLSX)
@@ -308,6 +417,8 @@ def main() -> int:
     if len(todo) > len(batch):
         log.info("W kolejce pozostało %d rekordów — kolejny przebieg oceni następne.",
                  len(todo) - len(batch))
+
+    write_email_report(recommended, details, written, len(todo) - len(batch))
     return 0
 
 
