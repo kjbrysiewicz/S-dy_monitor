@@ -148,7 +148,7 @@ master:
 agent:
   enabled: true
   model: "claude-sonnet-4-6"
-  max_per_run: 20            # limit ocen na przebieg (kontrola kosztów)
+  max_per_run: 50            # limit ocen na przebieg (kontrola kosztów)
   min_score_for_recommendation: 55   # poniżej -> kanał "Pomiń"
   max_chars: 25000           # ile znaków treści orzeczenia trafia do modelu
   # Autoczyszczenie bazy: usuwaj rekordy ocenione jako NIEZWIĄZANE z tematyką
