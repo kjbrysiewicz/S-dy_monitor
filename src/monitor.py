@@ -489,6 +489,20 @@ def main() -> int:
         klucz = ws.cell(r, col_idx["Klucz sprawy"]).value
         if klucz:
             known.add(norm_sig(klucz))
+
+    # Sprawy usunięte przez agenta jako poza tematyką też blokują ponowne dopisanie
+    if "Odrzucone (auto)" in wb.sheetnames:
+        rej = wb["Odrzucone (auto)"]
+        for r in range(2, rej.max_row + 1):
+            sig = rej.cell(r, col_idx["Sygnatura"]).value
+            if not sig:
+                continue
+            sad = rej.cell(r, col_idx["Sąd"]).value
+            jur = str(rej.cell(r, col_idx["Jurysdykcja"]).value or "")
+            if "cywiln" in jur.lower() and "najwyższy" not in str(sad or "").lower():
+                known.add(norm_sig(sig) + "|" + norm_sig(sad or ""))
+            else:
+                known.add(norm_sig(sig))
     log.info(
         "Master: %d rekordów (ostatni wiersz %d), okno wyszukiwania od %s",
         last_row - 1, last_row, date_from,
