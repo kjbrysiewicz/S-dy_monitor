@@ -59,6 +59,8 @@ TRACKED_PAGES = [
     "/zwrot-subwencji-pfr/",
     "/korekta-finansowa-jak-kwestionowac/",
     "/kontrola-projektu-unijnego/",
+    "/obrona-beneficjenta-kpo/",
+    "/negatywna-ocena-projektu/",
 ]
 
 TOP_N = 10
