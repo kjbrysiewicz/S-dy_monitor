@@ -51,7 +51,7 @@ TRACKED_QUERIES = [
     "droga cywilna zwrot dotacji", 
     "powództwo o ustalenie dofinansowanie", 
     "zabezpieczenie roszczenia weksel dotacja", 
-    "rejestr podmiotów wykluczonych".
+    "rejestr podmiotów wykluczonych",
 ]
 
 # Strony filarowe (ścieżki); wpis o zarządzie już istnieje, reszta wg planu
