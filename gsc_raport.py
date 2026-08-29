@@ -48,19 +48,25 @@ TRACKED_QUERIES = [
     "korekta finansowa",
     "odpowiedzialność członka zarządu dotacja",
     "informacja pokontrolna zastrzeżenia",
+    "droga cywilna zwrot dotacji", 
+    "powództwo o ustalenie dofinansowanie", 
+    "zabezpieczenie roszczenia weksel dotacja", 
+    "rejestr podmiotów wykluczonych".
 ]
 
 # Strony filarowe (ścieżki); wpis o zarządzie już istnieje, reszta wg planu
 TRACKED_PAGES = [
-    "/zwrot-srodkow-kpo-horeca/",
     "/wezwanie-do-zwrotu-dotacji/",
     "/decyzja-o-zwrocie-dofinansowania-odwolanie/",
-    "/odpowiedzialnosc-menedzera-za-niezwrocona-dotacje/",
-    "/zwrot-subwencji-pfr/",
-    "/korekta-finansowa-jak-kwestionowac/",
     "/kontrola-projektu-unijnego/",
-    "/obrona-beneficjenta-kpo/",
+    "/odpowiedzialnosc-czlonka-zarzadu/",
     "/negatywna-ocena-projektu/",
+    "/droga-cywilna-dofinansowanie/",
+    "/zwrot-dotacji-korekty-finansowe/",
+    "/obrona-beneficjenta-kpo/",
+    "/odpowiedzi/",
+    "/orzecznictwo/",
+    "/publikacje/",
 ]
 
 TOP_N = 10
