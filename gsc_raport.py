@@ -59,7 +59,7 @@ TRACKED_PAGES = [
     "/wezwanie-do-zwrotu-dotacji/",
     "/decyzja-o-zwrocie-dofinansowania-odwolanie/",
     "/kontrola-projektu-unijnego/",
-    "/odpowiedzialnosc-czlonka-zarzadu/",
+    "/odpowiedzialnosc-menedzera-za-niezwrocona-dotacje/",
     "/negatywna-ocena-projektu/",
     "/droga-cywilna-dofinansowanie/",
     "/zwrot-dotacji-korekty-finansowe/",
