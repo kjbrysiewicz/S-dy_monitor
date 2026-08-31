@@ -62,7 +62,10 @@ TRACKED_PAGES = [
     "/odpowiedzialnosc-menedzera-za-niezwrocona-dotacje/",
     "/negatywna-ocena-projektu/",
     "/droga-cywilna-dofinansowanie/",
-    "/zwrot-dotacji-korekty-finansowe/",
+    "/zwrot-dotacji-korekty-finansowe/"
+    "/korekta-finansowa-jak-sie-bronic/"
+    "/wskazniki-projektu-dofinansowanie/",
+    "/zasada-konkurencyjnosci-korekta-finansowa/",
     "/obrona-beneficjenta-kpo/",
     "/odpowiedzi/",
     "/orzecznictwo/",
