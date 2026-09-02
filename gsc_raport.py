@@ -67,6 +67,7 @@ TRACKED_PAGES = [
     "/wskazniki-projektu-dofinansowanie/",
     "/zasada-konkurencyjnosci-korekta-finansowa/",
     "/obrona-beneficjenta-kpo/",
+    "/przedawnienie/"'
     "/odpowiedzi/",
     "/orzecznictwo/",
     "/publikacje/",
