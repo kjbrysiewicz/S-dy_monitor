@@ -66,6 +66,7 @@ TRACKED_PAGES = [
     "/korekta-finansowa-jak-sie-bronic/",
     "/wskazniki-projektu-dofinansowanie/",
     "/zasada-konkurencyjnosci-korekta-finansowa/",
+    "/zwrot-subwencji-pfr/",
     "/obrona-beneficjenta-kpo/",
     "/przedawnienie/",
     "/odpowiedzi/",
