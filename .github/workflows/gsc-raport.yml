@@ -3,7 +3,7 @@ name: Raport GSC
 
 on:
   schedule:
-    - cron: "0 5 * * 1-5"   # 05:00 UTC = 07:00 czasu PL (lato), dni robocze
+    - cron: "0 5 * * *"   # 05:00 UTC = 07:00 czasu PL (lato), dni robocze
   workflow_dispatch:          # ręczne uruchomienie do testów
 
 permissions:
